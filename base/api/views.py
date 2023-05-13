@@ -88,6 +88,27 @@ class LoginAPIView(generics.GenericAPIView):
         })
 
 
+class RefreshTokenAPIView(generics.GenericAPIView):
+    serializer_class = RefreshTokenSerializer
+
+    def post(self, request):
+        serializer = self.serializer_class(data = request.data)
+        serializer.is_valid(raise_exception=True)
+        refresh = serializer.data['refresh']
+        token = RefreshToken(refresh)
+        token.blacklist()
+        payload = jwt.decode(refresh, settings.SECRET_KEY, algorithms=['HS256'])
+        tokens = get_tokens_for_user(User.objects.get(id=payload['user_id']))
+        return Response({
+            'status' : True,
+            'status_code' : 200,
+            'msg' : 'token refreshed successfully',
+            'data' : {
+                'access' : tokens['access'],
+                'refresh' : tokens['refresh']
+            }
+        })
+
 class GetUserAPIView(generics.GenericAPIView):
     permission_classes = [IsAuthenticated]
 

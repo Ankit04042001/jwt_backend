@@ -110,6 +110,7 @@ def custom_token_handler(exc, context, response):
     response.data = {
         'status' : False,
         'status_code' : exc.status_code,
+        'error_code' : 'expired',
         'msg' : 'Invalid or Expired Token.{ Token type = Access or Refresh}'
     }
     return response

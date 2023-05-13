@@ -1,10 +1,14 @@
 from rest_framework import serializers
 from base.models import *
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import ValidationError, AuthenticationFailed
 from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.auth.hashers import make_password
 from .custom_token import authenticate_custom_token
 from django.contrib.auth.hashers import check_password
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from rest_framework_simplejwt.views import TokenObtainPairView
+import jwt
+from django.conf import settings
 
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -95,6 +99,21 @@ class LoginSerializer(serializers.Serializer):
             raise ValidationError('Invalid password', code='invalid_password')
         return attrs
 
+
+class RefreshTokenSerializer(serializers.Serializer):
+    refresh = serializers.CharField()
+
+    def validate(self, attrs):
+        refresh = attrs.get('refresh')
+        try:
+            payload = jwt.decode(refresh, settings.SECRET_KEY, algorithms=['HS256'])
+            attrs['user'] = payload['user_id']
+        except jwt.ExpiredSignatureError:
+            raise AuthenticationFailed('Invalid or Expired Token')
+        except jwt.DecodeError:
+            raise AuthenticationFailed('Invalid Token')
+        
+        return attrs
 
 class ChangePasswordSerializer(serializers.Serializer):
     password = serializers.CharField(max_length=50, style={'input_type': 'password'}, required=True)
